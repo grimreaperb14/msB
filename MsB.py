@@ -81,9 +81,7 @@ def download_direct(url):
     return temp_file.name
 
 if video_url:
-    try:
-        if 
-        download_youtube_video(video_url, temp_dir)
+    try: download_youtube_video(video_url, temp_dir)
 video_path = os.path.join(temp_dir, "downloaded_video.mp4")
 video = VideoFileClip(video_path)
 
