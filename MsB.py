@@ -81,9 +81,20 @@ def download_direct(url):
     return temp_file.name
 
 if video_url:
-    try: download_youtube_video(video_url, temp_dir)
-video_path = os.path.join(temp_dir, "downloaded_video.mp4")
-video = VideoFileClip(video_path)
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            download_youtube_video(video_url, temp_dir)
+            video_path = os.path.join(temp_dir, "downloaded_video.mp4")
+            video = VideoFileClip(video_path)
+
+            st.video(video_path)
+            st.write(f"Video duration: {video.duration:.2f} seconds")
+
+            # Here you can add trimming, AI subtitles, overlays...
+
+    except Exception as e:
+        st.error(f"Error downloading or processing video: {e}")
+
 
 
         st.video(local_path)
