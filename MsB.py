@@ -8,26 +8,47 @@ import yt_dlp
 st.title("My AI Short Clips Editor")
 st.write("Welcome to my Streamlit app!")
 
-# -------------------------------
-# Part 1: Upload Video & Edit
-# -------------------------------
+# --------- YouTube download with optional cookies ---------
 
-uploaded_file = st.file_uploader("Upload a video", type=["mp4", "mov", "avi"])
+def download_youtube_video(url, output_path):
+    ydl_opts = {
+        'format': 'best[ext=mp4]',
+        'outtmpl': f'{output_path}/downloaded_video.%(ext)s',
+        'quiet': True,
+        'cookiefile': 'cookies.txt',  # <-- Add your cookies.txt file here for logged-in downloads
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+# --------- Direct video download ---------
+
+def download_direct(url):
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+    r = requests.get(url, stream=True)
+    with open(temp_file.name, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+    return temp_file.name
+
+# --------- Video processing function ---------
 
 def process_video(input_path, start, end, speed, text):
     clip = VideoFileClip(input_path).subclip(start, end)
 
-    # Speed control
     if speed != 1.0:
         clip = clip.fx(vfx.speedx, speed)
 
-    # Add text overlay if text provided
     if text.strip():
         txt_clip = TextClip(text, fontsize=24, color='white', bg_color='black', method='caption')
         txt_clip = txt_clip.set_pos(('center', 'bottom')).set_duration(clip.duration)
         clip = CompositeVideoClip([clip, txt_clip])
 
     return clip
+
+# --------- Part 1: Upload and edit local video ---------
+
+uploaded_file = st.file_uploader("Upload a video", type=["mp4", "mov", "avi"])
 
 if uploaded_file:
     tfile = tempfile.NamedTemporaryFile(delete=False)
@@ -52,32 +73,12 @@ if uploaded_file:
         else:
             st.error("End time must be greater than start time.")
 
-# -------------------------------
-# Part 2: Download from URL & Edit
-# -------------------------------
+# --------- Part 2: Download from URL and edit ---------
 
 st.markdown("---")
 st.title("Or paste YouTube or Direct Video URL here:")
 
 video_url = st.text_input("Paste YouTube or direct video URL here:")
-
-def download_youtube_video(url, output_path):
-    ydl_opts = {
-        'format': 'best[ext=mp4]',
-        'outtmpl': f'{output_path}/downloaded_video.%(ext)s',
-        'quiet': True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-
-def download_direct(url):
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-    r = requests.get(url, stream=True)
-    with open(temp_file.name, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-    return temp_file.name
 
 if video_url:
     try:
@@ -110,4 +111,3 @@ if video_url:
 
     except Exception as e:
         st.error(f"Error downloading or processing video: {e}")
-
