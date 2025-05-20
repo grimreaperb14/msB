@@ -1,14 +1,16 @@
 import streamlit as st
+from moviepy.editor import VideoFileClip, concatenate_videoclips, TextClip, CompositeVideoClip, vfx
+import tempfile
+import os
+import requests
+import yt_dlp
 
 st.title("My AI Short Clips Editor")
 st.write("Welcome to my Streamlit app!")
 
-import streamlit as st
-from moviepy.editor import VideoFileClip, concatenate_videoclips, TextClip, CompositeVideoClip
-import tempfile
-import os
-
-st.title("AI Short Clips Editor - Advanced")
+# -------------------------------
+# Part 1: Upload Video & Edit
+# -------------------------------
 
 uploaded_file = st.file_uploader("Upload a video", type=["mp4", "mov", "avi"])
 
@@ -33,14 +35,14 @@ if uploaded_file:
     tfile.close()
 
     clip = VideoFileClip(tfile.name)
-    st.video(uploaded_file)
+    st.video(tfile.name)
 
     start_time = st.number_input("Start time (seconds)", 0.0, clip.duration, 0.0)
     end_time = st.number_input("End time (seconds)", 0.0, clip.duration, clip.duration)
     speed = st.slider("Playback speed", 0.25, 3.0, 1.0, 0.05)
     overlay_text = st.text_input("Text overlay (leave blank for none)")
 
-    if st.button("Process Video"):
+    if st.button("Process Uploaded Video"):
         if end_time > start_time:
             processed_clip = process_video(tfile.name, start_time, end_time, speed, overlay_text)
             out_path = os.path.join(tempfile.gettempdir(), "edited_video.mp4")
@@ -50,14 +52,12 @@ if uploaded_file:
         else:
             st.error("End time must be greater than start time.")
 
-import streamlit as st
-from pytube import YouTube
-import requests
-import tempfile
-import os
-from moviepy.editor import VideoFileClip
+# -------------------------------
+# Part 2: Download from URL & Edit
+# -------------------------------
 
-st.title("AI Short Clips Editor with URL Input")
+st.markdown("---")
+st.title("Or paste YouTube or Direct Video URL here:")
 
 video_url = st.text_input("Paste YouTube or direct video URL here:")
 
@@ -69,7 +69,6 @@ def download_youtube_video(url, output_path):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-
 
 def download_direct(url):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
@@ -83,26 +82,32 @@ def download_direct(url):
 if video_url:
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
-            download_youtube_video(video_url, temp_dir)
-            video_path = os.path.join(temp_dir, "downloaded_video.mp4")
+            if "youtube.com" in video_url or "youtu.be" in video_url:
+                download_youtube_video(video_url, temp_dir)
+                video_path = os.path.join(temp_dir, "downloaded_video.mp4")
+            else:
+                video_path = download_direct(video_url)
+
             video = VideoFileClip(video_path)
 
             st.video(video_path)
             st.write(f"Video duration: {video.duration:.2f} seconds")
 
-            # Here you can add trimming, AI subtitles, overlays...
+            start_time = st.number_input("Start time (seconds)", 0.0, video.duration, 0.0, key="url_start")
+            end_time = st.number_input("End time (seconds)", 0.0, video.duration, video.duration, key="url_end")
+            speed = st.slider("Playback speed", 0.25, 3.0, 1.0, 0.05, key="url_speed")
+            overlay_text = st.text_input("Text overlay (leave blank for none)", key="url_text")
+
+            if st.button("Process URL Video"):
+                if end_time > start_time:
+                    processed_clip = process_video(video_path, start_time, end_time, speed, overlay_text)
+                    out_path = os.path.join(tempfile.gettempdir(), "edited_url_video.mp4")
+                    processed_clip.write_videofile(out_path, codec='libx264')
+                    with open(out_path, 'rb') as f:
+                        st.download_button("Download Edited Video", f, file_name="edited_url_video.mp4")
+                else:
+                    st.error("End time must be greater than start time.")
 
     except Exception as e:
         st.error(f"Error downloading or processing video: {e}")
 
-
-
-        st.video(local_path)
-
-        clip = VideoFileClip(local_path)
-        st.write(f"Video duration: {clip.duration:.2f} seconds")
-
-        # Here you can add trimming, AI subtitles, overlays...
-
-    except Exception as e:
-        st.error(f"Error downloading or processing video: {e}")
