@@ -61,12 +61,15 @@ st.title("AI Short Clips Editor with URL Input")
 
 video_url = st.text_input("Paste YouTube or direct video URL here:")
 
-def download_youtube(url):
-    yt = YouTube(url)
-    stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-    stream.download(output_path=os.path.dirname(temp_file.name), filename=os.path.basename(temp_file.name))
-    return temp_file.name
+def download_youtube_video(url, output_path):
+    ydl_opts = {
+        'format': 'best[ext=mp4]',
+        'outtmpl': f'{output_path}/downloaded_video.%(ext)s',
+        'quiet': True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
 
 def download_direct(url):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
@@ -79,10 +82,11 @@ def download_direct(url):
 
 if video_url:
     try:
-        if "youtube.com" in video_url or "youtu.be" in video_url:
-            local_path = download_youtube(video_url)
-        else:
-            local_path = download_direct(video_url)
+        if 
+        download_youtube_video(video_url, temp_dir)
+video_path = os.path.join(temp_dir, "downloaded_video.mp4")
+video = VideoFileClip(video_path)
+
 
         st.video(local_path)
 
